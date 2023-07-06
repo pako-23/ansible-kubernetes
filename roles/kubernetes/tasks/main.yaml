@@ -1,0 +1,17 @@
+---
+- ansible.builtin.import_tasks: setup.yaml
+  tags: setup
+
+- ansible.builtin.import_tasks: container_runtime_install.yaml
+  tags: container_runtime_install
+
+- ansible.builtin.import_tasks: kubeadm_install.yaml
+  tags: kubeadm_install
+
+- ansible.builtin.import_tasks: master_init.yaml
+  tags: cluster_formation
+  when: "'kubernetes_masters' in group_names"
+
+- ansible.builtin.import_tasks: node_join.yaml
+  tags: cluster_formation
+  when: "'kubernetes_nodes' in group_names"

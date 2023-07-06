@@ -1,0 +1,6 @@
+---
+- ansible.builtin.shell:
+    cmd: |-
+      {{ hostvars['master-1']['kubernetes_join_command'] | trim }}
+      touch /etc/kubernetes/joined
+    creates: /etc/kubernetes/joined

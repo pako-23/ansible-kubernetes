@@ -1,0 +1,17 @@
+---
+- name: Deploy nginx external ingress
+  kubernetes.core.helm:
+    name: nginx-ingress
+    chart_repo_url: https://helm.nginx.com/stable
+    chart_ref: nginx-ingress
+    chart_version: "{{ nginx_chart_version }}"
+    release_namespace: nginx-ingress
+    create_namespace: true
+    values:
+      controller:
+        service:
+          type: NodePort
+          httpPort:
+            nodePort: 30080
+          httpsPort:
+            nodePort: 30443

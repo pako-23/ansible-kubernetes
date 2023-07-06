@@ -1,0 +1,55 @@
+---
+- name: kubernetes | Load kernel modules
+  community.general.modprobe:
+    name: "{{ item }}"
+    persistent: present
+  loop:
+    - overlay
+    - br_netfilter
+
+- ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+  loop:
+    - {name: net.bridge.bridge-nf-call-iptables, value: '1'}
+    - {name: net.bridge.bridge-nf-call-ip6tables, value: '1'}
+    - {name: net.ipv4.ip_forward, value: '1'}
+
+- name: kubernetes | Add Docker official GPG key
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://download.docker.com/linux/{{ distro }}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    creates: /etc/apt/keyrings/docker.gpg
+  vars:
+    distro: "{{ ansible_distribution | lower }}"
+
+- name: kubernetes | Add Docker official repository
+  ansible.builtin.apt_repository:
+    repo: deb [arch={{ arch }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/{{ distro }} {{ ansible_distribution_release }} stable
+    filename: docker
+  vars:
+    arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}"
+    distro: "{{ ansible_distribution | lower }}"
+
+- name: kubernetes | Install containerd
+  ansible.builtin.apt:
+    install_recommends: false
+    name: containerd.io
+
+- name: kubernetes | Enable containerd service
+  ansible.builtin.service:
+    enabled: true
+    name: containerd
+    state: started
+
+- name: kubernetes | Configure containerd
+  ansible.builtin.template:
+    dest: /etc/containerd/config.toml
+    src: config.toml.j2
+  register: containerd_config
+
+- name: kubernetes | Restart containerd
+  ansible.builtin.service:
+    name: containerd
+    state: restarted
+  when: containerd_config.changed

@@ -1,0 +1,24 @@
+---
+- name: kubernetes | Update APT cache
+  ansible.builtin.apt:
+    cache_valid_time: 86400
+    update_cache: yes
+
+- name: kubernetes | Install packages
+  ansible.builtin.apt:
+    install_recommends: false
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - ebtables
+      - ethtool
+      - gnupg
+      - iptables
+
+- name: kubernetes | Remove swap mounts
+  ansible.posix.mount:
+    name: "{{ item }}"
+    fstype: swap
+    state: absent
+  loop: "{{ ansible_mounts | selectattr('fstype', 'equalto', 'swap') }}"

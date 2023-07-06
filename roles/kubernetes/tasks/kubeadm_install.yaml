@@ -1,0 +1,31 @@
+---
+- name: kubernetes | Add kubernetes repository key
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o  /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+    creates: /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+
+- name: kubernetes | Add kubernetes repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main"
+    filename: kubernetes
+
+- name: kubernetes | Install kubernetes packages
+  ansible.builtin.apt:
+    install_recommends: false
+    name:
+      - kubelet={{ kubernetes_version }}
+      - kubeadm={{ kubernetes_version }}
+      - kubectl={{ kubernetes_version }}
+
+- name: kubernetes | Configure kubelet
+  ansible.builtin.template:
+    dest: /etc/default/kubelet
+    src: kubelet.j2
+  register: kubelet_config
+
+- name: Restart kubelet
+  ansible.builtin.service:
+    name: kubelet
+    daemon_reload: yes
+    state: restarted
+  when: kubelet_config.changed

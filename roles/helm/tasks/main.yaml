@@ -1,0 +1,23 @@
+---
+- name: kubernetes | Add Helm official GPG key
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://baltocdn.com/helm/signing.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/helm.gpg
+    creates: /etc/apt/trusted.gpg.d/helm.gpg
+
+- name: kubernetes | Add Helm official repository
+  ansible.builtin.apt_repository:
+    repo: deb [arch={{ arch }} signed-by=/etc/apt/trusted.gpg.d/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main
+    filename: helm
+  vars:
+    arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}"
+
+- name: kubernetes | Install helm
+  ansible.builtin.apt:
+    install_recommends: false
+    name:
+      - git
+      - helm
+
+- name: kubernetes | Install diff plugin
+  kubernetes.core.helm_plugin:
+    plugin_path: https://github.com/databus23/helm-diff

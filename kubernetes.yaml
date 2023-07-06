@@ -1,0 +1,12 @@
+---
+- hosts: kubernetes
+  become: true
+  roles:
+    - kubernetes
+
+- hosts: kubernetes_masters
+  become: true
+  roles:
+    - helm
+    - metrics-server
+    - ingress-controller

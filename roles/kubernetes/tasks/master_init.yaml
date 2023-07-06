@@ -1,0 +1,60 @@
+---
+- name: kubernetes | Install package to manage k8s from ansible
+  ansible.builtin.apt:
+    install_recommends: false
+    name:
+      - python3-kubernetes
+
+- name: kubernetes | Configure kubeadm
+  ansible.builtin.template:
+    dest: /etc/kubernetes/kubeadm-config.yaml
+    src: kubeadm-config.yaml.j2
+
+- name: kubernets | Initialize the Kubernetes cluster using kubeadm
+  ansible.builtin.shell:
+    cmd: kubeadm init --config /etc/kubernetes/kubeadm-config.yaml
+    creates: /etc/kubernetes/join.sh
+
+- name: kubernets | Create join token
+  ansible.builtin.shell:
+    cmd: kubeadm token create --print-join-command > /etc/kubernetes/join.sh
+    creates: /etc/kubernetes/join.sh
+
+- name: kubernetes | Set correct permissions to the command to join cluster
+  ansible.builtin.file:
+    path: /etc/kubernetes/join.sh
+    mode: 0700
+    owner: root
+    group: root
+
+- name: kubernetes | Set kubernetes_join_command variable
+  ansible.builtin.slurp:
+    src: /etc/kubernetes/join.sh
+  register: kubernetes_join_command
+
+- name: kubernetes | Set kubernetes_join_command variable
+  ansible.builtin.set_fact:
+    kubernetes_join_command: "{{  kubernetes_join_command['content'] | b64decode }}"
+
+- name: kubernetes | Create kubeconfig directory
+  ansible.builtin.file:
+    path: /root/.kube
+    state: directory
+
+- name: kubernetes | Create kubeconfig file
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    owner: root
+    group: root
+    mode: 0600
+    remote_src: true
+
+- name: kubernetes | Add CNI file configuration
+  ansible.builtin.template:
+    dest: /etc/kubernetes/cni.yaml
+    src: calico.yaml.j2
+
+- name: kubernetes | Apply CNI configuration
+  kubernetes.core.k8s:
+    src: /etc/kubernetes/cni.yaml
