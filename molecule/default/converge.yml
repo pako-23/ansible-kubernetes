@@ -1,0 +1,17 @@
+---
+- name: Converge
+  hosts: kubernetes
+  become: true
+  pre_tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        cache_valid_time: 600
+        update_cache: true
+
+    - name: Set the advertised address
+      ansible.builtin.set_fact:
+        kubernetes_advertise_address: "{{ ansible_default_ipv4.address }}"
+      when: kubernetes_role == 'master'
+
+  roles:
+    - role: pako-23.kubernetes

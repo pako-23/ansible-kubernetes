@@ -1,5 +1,0 @@
----
-
-pod_subnet: 10.0.0.0/24
-
-kubernetes_version: 1.27.*

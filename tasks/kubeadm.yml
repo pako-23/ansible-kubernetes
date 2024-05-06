@@ -1,0 +1,38 @@
+---
+- name: Check if kubernetes key file exists
+  ansible.builtin.stat:
+    path: /etc/apt/keyrings/kubernetes.gpg
+  register: kubernetes_key_file
+
+- name: Download kubernetes key file
+  ansible.builtin.get_url:
+    dest: /tmp/kubernetes.gpg
+    group: root
+    mode: '0644'
+    owner: root
+    url: https://pkgs.k8s.io/core:/stable:{{ key_path }}
+  vars:
+    key_path: /v{{ kubernetes_version }}/deb/Release.key
+  when: not kubernetes_key_file.stat.exists
+
+- name: Add kubernetes repo key
+  ansible.builtin.command:
+    cmd: gpg --dearmor -o /etc/apt/keyrings/kubernetes.gpg /tmp/kubernetes.gpg
+    creates: /etc/apt/keyrings/kubernetes.gpg
+  when: not kubernetes_key_file.stat.exists
+
+- name: Add kubernetes repository
+  ansible.builtin.apt_repository:
+    repo: deb [{{ repo_options }}] {{ repo_link }} /
+    filename: kubernetes
+  vars:
+    repo_link: https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/
+    repo_options: signed-by=/etc/apt/keyrings/kubernetes.gpg
+
+- name: Install kubernetes packages
+  ansible.builtin.apt:
+    install_recommends: false
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl

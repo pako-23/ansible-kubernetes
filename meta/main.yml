@@ -1,0 +1,21 @@
+---
+dependencies:
+  - pako-23.containerd
+
+galaxy_info:
+  author: pako-23
+  description: A role to install Kubernetes on Linux.
+
+  galaxy_tags:
+    - kubernetes
+
+  license: MIT
+  min_ansible_version: '1.16'
+  namespace: pako-23
+
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+
+  role_name: kubernetes

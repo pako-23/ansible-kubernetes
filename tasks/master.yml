@@ -1,0 +1,66 @@
+---
+- name: Install package to manage k8s from ansible
+  ansible.builtin.apt:
+    install_recommends: false
+    name: python3-kubernetes
+
+- name: Create kubeadm configuration file
+  ansible.builtin.template:
+    dest: /etc/kubernetes/kubeadm-config.yaml
+    src: kubeadm-config.yaml.j2
+    mode: '0600'
+    owner: root
+    group: root
+
+- name: Initialize the Kubernetes cluster using kubeadm
+  ansible.builtin.command:
+    cmd: kubeadm init --config /etc/kubernetes/kubeadm-config.yaml
+    creates: /etc/kubernetes/admin.conf
+
+- name: Create kubeconfig directory
+  ansible.builtin.file:
+    path: /root/.kube
+    state: directory
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Create kubeconfig file
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    owner: root
+    group: root
+    mode: '0600'
+    remote_src: true
+
+- name: Get cluster join token
+  ansible.builtin.command:
+    cmd: kubeadm token create --print-join-command
+  changed_when: false
+  register: kubernetes_join_command_result
+
+- name: Register join command to all nodes
+  ansible.builtin.set_fact:
+    kubernetes_join_command: "{{ kubernetes_join_command_result.stdout }}"
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  with_items: "{{ groups['all'] }}"
+
+- name: Configure Calico CNI
+  kubernetes.core.k8s:
+    src: https://projectcalico.docs.tigera.io/manifests/calico.yaml
+  register: cni_create
+  until: cni_create is not failed
+  retries: 6
+  delay: 5
+
+- name: Configure Metrics Server
+  kubernetes.core.k8s:
+    src: https://github.com/kubernetes-sigs/metrics-server{{ manifest_path }}
+  register: metrics_server_create
+  until: metrics_server_create is not failed
+  retries: 6
+  delay: 5
+  vars:
+    manifest_path: /releases/latest/download/components.yaml

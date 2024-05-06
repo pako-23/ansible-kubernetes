@@ -1,0 +1,44 @@
+---
+driver:
+  name: vagrant
+  provider:
+    name: libvirt
+    type: libvirt
+
+platforms:
+  - name: master
+    box: debian/bookworm64
+    memory: 2048
+    cpus: 2
+    groups:
+      - kubernetes_masters
+      - kubernetes
+  - name: worker
+    box: debian/bookworm64
+    memory: 2048
+    cpus: 2
+    groups:
+      - kubernetes_workers
+      - kubernetes
+
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      stdout_callback: yaml
+  inventory:
+    group_vars:
+      kubernetes:
+        kubernetes_version: '1.30'
+      kubernetes_masters:
+        kubernetes_role: master
+      kubernetes_workers:
+        kubernetes_role: worker
+
+role_name_check: 1
+
+verifier:
+  name: testinfra
+  options:
+    s: true
+    sudo: true

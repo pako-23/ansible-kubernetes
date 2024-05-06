@@ -1,0 +1,4 @@
+---
+kubernetes_distro: "{{ ansible_facts['lsb']['id'] | lower }}"
+
+kubernetes_version: '1.30'
