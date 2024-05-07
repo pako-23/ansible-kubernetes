@@ -33,6 +33,9 @@
   ansible.builtin.apt:
     install_recommends: false
     name:
-      - kubelet
+      - ebtables
+      - ethtool
+      - iptables
       - kubeadm
       - kubectl
+      - kubelet
